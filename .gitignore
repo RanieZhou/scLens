@@ -1,0 +1,24 @@
+node_modules/
+dist/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Runtime
+storage/
+tmp/
+*.log
+
+# Large data files
+data/
+
+# Rust build artifacts
+apps/desktop/src-tauri/target/
+
+# Python
+python/analysis-core/.venv/
+python/analysis-core/.pytest_cache/
+python/analysis-core/**/__pycache__/

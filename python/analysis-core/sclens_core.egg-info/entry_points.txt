@@ -1,0 +1,2 @@
+[console_scripts]
+sclens = sclens_core.cli:app

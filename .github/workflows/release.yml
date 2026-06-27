@@ -1,0 +1,83 @@
+name: Release Desktop App
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-tauri:
+    permissions:
+      contents: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+          - platform: ubuntu-22.04
+            args: ''
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ (matrix.platform == 'macos-latest' && matrix.args == '--target aarch64-apple-darwin') && 'aarch64-apple-darwin' || (matrix.platform == 'macos-latest' && matrix.args == '--target x86_64-apple-darwin') && 'x86_64-apple-darwin' || '' }}
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Install frontend dependencies
+        run: pnpm install
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ github.ref_name }}
+          releaseName: scLens Runner ${{ github.ref_name }}
+          releaseBody: |
+            ## scLens Desktop Runner ${{ github.ref_name }}
+
+            本地执行引擎，配合 scLens Web 控制台使用。
+
+            ### 安装方式
+            - **Windows**: 下载 `.msi` 安装包
+            - **macOS**: 下载 `.dmg` 镜像
+            - **Linux**: 下载 `.AppImage` 或 `.deb` 包
+
+            ### 使用说明
+            安装后启动 scLens Runner，在 Web 控制台中配对项目，即可在本地执行单细胞分析流程。
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

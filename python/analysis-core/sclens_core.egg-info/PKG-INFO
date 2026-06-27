@@ -1,0 +1,19 @@
+Metadata-Version: 2.4
+Name: sclens-core
+Version: 0.1.0
+Summary: Python analysis core for scLens
+Requires-Python: >=3.10
+Requires-Dist: typer>=0.9
+Requires-Dist: scanpy>=1.9
+Requires-Dist: anndata>=0.9
+Requires-Dist: numpy>=1.23
+Requires-Dist: pandas>=1.5
+Requires-Dist: scipy>=1.9
+Requires-Dist: scikit-learn>=1.1
+Requires-Dist: matplotlib>=3.6
+Requires-Dist: h5py>=3.7
+Requires-Dist: python-igraph>=0.10
+Requires-Dist: leidenalg>=0.10
+Requires-Dist: umap-learn>=0.5
+Requires-Dist: pyarrow>=10
+Requires-Dist: jinja2>=3.1

@@ -1,0 +1,32 @@
+{
+  "name": "@sclens/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -p tsconfig.json --noEmit && vite build",
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@sclens/api-client": "workspace:*",
+    "@sclens/shared-types": "workspace:*",
+    "@sclens/ui": "workspace:*",
+    "@vitejs/plugin-react": "^5.1.2",
+    "antd": "^6.2.1",
+    "echarts": "^6.0.0",
+    "plotly.js": "^3.3.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-router": "^7.11.0",
+    "react-router-dom": "^7.11.0",
+    "zustand": "^5.0.9",
+    "@tanstack/react-query": "^5.90.12"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "vite": "^7.3.0"
+  }
+}

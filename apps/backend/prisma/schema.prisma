@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tasks    Task[]
+  bindings ProjectRunnerBinding[]
+}
+
+model Runner {
+  id                String   @id @default(uuid())
+  runnerName        String?
+  deviceFingerprint String?
+  os                String?
+  arch              String?
+  status            String   @default("offline")
+  lastSeenAt         DateTime?
+  createdAt          DateTime @default(now())
+
+  profile  RunnerProfile?
+  bindings ProjectRunnerBinding[]
+  tasks    Task[]
+}
+
+model RunnerProfile {
+  id         String   @id @default(uuid())
+  runnerId   String   @unique
+  hostname   String?
+  cpuInfo    Json?
+  memoryInfo Json?
+  gpuInfo    Json?
+  diskInfo   Json?
+  pythonEnvs Json?
+  updatedAt  DateTime @updatedAt
+
+  runner Runner @relation(fields: [runnerId], references: [id])
+}
+
+model RunnerPairingSession {
+  id               String    @id @default(uuid())
+  runnerId         String
+  pairCodeHash     String
+  pairNonce        String
+  runnerSecretHash String
+  status           String
+  expiresAt        DateTime
+  pairedProjectId  String?
+  pairedAt         DateTime?
+  attemptCount     Int       @default(0)
+  createdAt        DateTime  @default(now())
+}
+
+model ProjectRunnerBinding {
+  id        String   @id @default(uuid())
+  projectId String
+  runnerId  String
+  status    String   @default("active")
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id])
+  runner  Runner  @relation(fields: [runnerId], references: [id])
+
+  @@unique([projectId, runnerId])
+}
+
+model Task {
+  id            String    @id @default(uuid())
+  projectId     String
+  runnerId      String?
+  name          String
+  pipeline      String
+  status        String
+  config        Json
+  inputFileMeta Json?
+  progress      Int       @default(0)
+  currentStage  String?
+  errorMessage  String?
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  project     Project      @relation(fields: [projectId], references: [id])
+  runner      Runner?      @relation(fields: [runnerId], references: [id])
+  resultFiles ResultFile[]
+  logs        TaskLog[]
+}
+
+model TaskLog {
+  id        String   @id @default(uuid())
+  taskId    String
+  level     String
+  stage     String?
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id])
+}
+
+model ResultFile {
+  id        String   @id @default(uuid())
+  taskId    String
+  fileType  String
+  fileName  String
+  objectKey String
+  sizeBytes BigInt?
+  checksum  String?
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id])
+}

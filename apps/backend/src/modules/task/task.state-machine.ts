@@ -1,0 +1,21 @@
+import type { TaskStatus } from "@sclens/shared-types";
+
+export const TASK_STATE_MACHINE: Record<TaskStatus, readonly TaskStatus[]> = {
+  CREATED: ["WAITING_FOR_LOCAL_RUNNER", "CANCELLED"],
+  WAITING_FOR_LOCAL_RUNNER: ["RUNNER_CONNECTED", "CANCELLED", "FAILED"],
+  RUNNER_CONNECTED: ["WAITING_FOR_LOCAL_FILE", "CANCELLED", "FAILED"],
+  WAITING_FOR_LOCAL_FILE: ["ENV_CHECKING", "CANCELLED", "FAILED"],
+  ENV_CHECKING: ["ENV_READY", "INSTALLING_DEPENDENCIES", "FAILED", "CANCELLED"],
+  INSTALLING_DEPENDENCIES: ["ENV_READY", "FAILED", "CANCELLED"],
+  ENV_READY: ["QUEUED_LOCAL", "FAILED", "CANCELLED"],
+  QUEUED_LOCAL: ["RUNNING", "CANCELLED", "FAILED"],
+  RUNNING: ["UPLOADING_RESULTS", "FAILED", "CANCELLED"],
+  UPLOADING_RESULTS: ["COMPLETED", "FAILED", "CANCELLED"],
+  COMPLETED: [],
+  FAILED: [],
+  CANCELLED: []
+};
+
+export function isValidTransition(from: TaskStatus, to: TaskStatus): boolean {
+  return (TASK_STATE_MACHINE[from] as readonly TaskStatus[]).includes(to);
+}
