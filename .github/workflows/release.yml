@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
 
+# If the same tag is re-pushed, cancel the in-progress run so the new one
+# doesn't race the old one on draft cleanup / asset upload.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # Step 1: create ONE draft release up-front so all matrix jobs upload to it.
   # (GitHub's "get release by tag" API does not return drafts, so letting each
@@ -25,19 +31,22 @@ jobs:
         with:
           script: |
             const tag = process.env.GITHUB_REF_NAME;
-            // Remove any pre-existing releases for this tag (incl. leftover drafts)
+            // Clean up before creating: delete this tag's release (re-run safety)
+            // AND any leftover draft releases from earlier builds. Published
+            // (non-draft) releases are kept, so only the newest draft survives.
             const existing = await github.rest.repos.listReleases({
               owner: context.repo.owner,
               repo: context.repo.repo,
               per_page: 100,
             });
             for (const rel of existing.data) {
-              if (rel.tag_name === tag) {
+              if (rel.tag_name === tag || rel.draft) {
                 await github.rest.repos.deleteRelease({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   release_id: rel.id,
                 });
+                console.log(`Deleted stale release ${rel.tag_name} (draft=${rel.draft})`);
               }
             }
             const body = [
