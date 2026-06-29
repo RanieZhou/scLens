@@ -104,7 +104,7 @@ pub async fn run_pipeline(
     }
 
     // 8. Spawn subprocess
-    let mut child = tokio::process::Command::new(&python_bin)
+    let mut child = crate::proc::async_command(&python_bin)
         .args(&args)
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())

@@ -2,6 +2,7 @@
 
 mod commands;
 mod pairing;
+mod proc;
 mod python_probe;
 mod store;
 mod system_probe;

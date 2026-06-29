@@ -1,5 +1,5 @@
 use serde::Serialize;
-use std::process::Command;
+use crate::proc;
 
 #[derive(Serialize, Clone)]
 pub struct PythonEnv {
@@ -41,7 +41,7 @@ fn mask_path(path: &str) -> String {
 }
 
 fn python_version(python_bin: &str) -> Option<String> {
-    let out = Command::new(python_bin)
+    let out = proc::command(python_bin)
         .args(["--version"])
         .output()
         .ok()?;
@@ -60,7 +60,7 @@ fn check_packages(python_bin: &str) -> (serde_json::Value, Vec<String>) {
          import json; print(json.dumps({{'pkgs':pkgs,'missing':missing}}))",
         REQUIRED_PACKAGES
     );
-    let out = Command::new(python_bin)
+    let out = proc::command(python_bin)
         .args(["-c", &script])
         .output();
     match out {
@@ -116,7 +116,7 @@ pub fn probe_envs() -> Vec<PythonEnv> {
     let mut envs = vec![];
 
     for cmd in &["python3", "python"] {
-        if let Ok(out) = Command::new(cmd).args(["--version"]).output() {
+        if let Ok(out) = proc::command(cmd).args(["--version"]).output() {
             if out.status.success() || !String::from_utf8_lossy(&out.stderr).is_empty() {
                 let bin = which_bin(cmd).unwrap_or_else(|| cmd.to_string());
                 envs.push(make_env(format!("system:{}", cmd), "system", None, &bin));
@@ -125,7 +125,7 @@ pub fn probe_envs() -> Vec<PythonEnv> {
         }
     }
 
-    if let Ok(out) = Command::new("conda").args(["env", "list", "--json"]).output() {
+    if let Ok(out) = proc::command("conda").args(["env", "list", "--json"]).output() {
         if out.status.success() {
             if let Ok(j) = serde_json::from_slice::<serde_json::Value>(&out.stdout) {
                 if let Some(arr) = j.get("envs").and_then(|e| e.as_array()) {
@@ -153,7 +153,7 @@ fn which_bin(cmd: &str) -> Option<String> {
     let which_cmd = "where";
     #[cfg(not(windows))]
     let which_cmd = "which";
-    let out = Command::new(which_cmd).arg(cmd).output().ok()?;
+    let out = proc::command(which_cmd).arg(cmd).output().ok()?;
     if out.status.success() {
         let path = String::from_utf8_lossy(&out.stdout)
             .lines().next()?.trim().to_string();
