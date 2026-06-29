@@ -1,5 +1,6 @@
 use serde::Serialize;
 use sysinfo::System;
+use crate::proc;
 
 #[derive(Serialize, Clone)]
 pub struct CpuInfo {
@@ -85,6 +86,75 @@ pub fn probe() -> SystemInfo {
         },
         memory_info: MemoryInfo { total_gb, available_gb },
         disk_info: DiskInfo { free_gb },
-        gpu_info: vec![],
+        gpu_info: probe_gpus(),
+    }
+}
+
+/// Infer the GPU vendor from its display name.
+fn vendor_from_name(name: &str) -> String {
+    let lower = name.to_lowercase();
+    if lower.contains("nvidia") || lower.contains("geforce")
+        || lower.contains("quadro") || lower.contains("rtx") || lower.contains("gtx") {
+        "NVIDIA".to_string()
+    } else if lower.contains("amd") || lower.contains("radeon") {
+        "AMD".to_string()
+    } else if lower.contains("intel") {
+        "Intel".to_string()
+    } else if lower.contains("apple") {
+        "Apple".to_string()
+    } else {
+        "Unknown".to_string()
+    }
+}
+
+/// Best-effort cross-platform GPU detection. Never fails — returns an empty
+/// list if the platform probe is unavailable.
+fn probe_gpus() -> Vec<GpuInfo> {
+    #[cfg(windows)]
+    {
+        // Windows PowerShell CIM: one video-controller name per line.
+        let out = proc::command("powershell")
+            .args([
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }",
+            ])
+            .output();
+        if let Ok(o) = out {
+            if o.status.success() {
+                return String::from_utf8_lossy(&o.stdout)
+                    .lines()
+                    .map(|l| l.trim())
+                    .filter(|l| !l.is_empty())
+                    .map(|name| GpuInfo { vendor: vendor_from_name(name), name: name.to_string() })
+                    .collect();
+            }
+        }
+        Vec::new()
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        // macOS: parse "Chipset Model: <name>" lines from system_profiler.
+        let out = proc::command("system_profiler")
+            .args(["SPDisplaysDataType"])
+            .output();
+        if let Ok(o) = out {
+            if o.status.success() {
+                return String::from_utf8_lossy(&o.stdout)
+                    .lines()
+                    .filter_map(|l| l.trim().strip_prefix("Chipset Model:").map(|n| n.trim().to_string()))
+                    .filter(|n| !n.is_empty())
+                    .map(|name| GpuInfo { vendor: vendor_from_name(&name), name })
+                    .collect();
+            }
+        }
+        Vec::new()
+    }
+
+    #[cfg(not(any(windows, target_os = "macos")))]
+    {
+        Vec::new()
     }
 }
