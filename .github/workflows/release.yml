@@ -6,7 +6,54 @@ on:
       - 'v*'
 
 jobs:
+  # Step 1: create ONE draft release up-front so all matrix jobs upload to it.
+  # (GitHub's "get release by tag" API does not return drafts, so letting each
+  #  matrix job create its own release produces duplicate drafts with split assets.)
+  create-release:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create-release.outputs.result }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create draft release
+        id: create-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = process.env.GITHUB_REF_NAME;
+            const body = [
+              `## scLens Desktop Runner ${tag}`,
+              ``,
+              `本地执行引擎，配合 scLens Web 控制台使用。`,
+              ``,
+              `### 安装方式`,
+              `- **Windows**: 下载 \`.msi\` 安装包`,
+              `- **macOS (Apple Silicon)**: 下载 \`aarch64.dmg\``,
+              `- **macOS (Intel)**: 下载 \`x64.dmg\``,
+              ``,
+              `### 使用说明`,
+              `安装后启动 scLens Runner，在 Web 控制台中配对项目，即可在本地执行单细胞分析流程。`,
+              ``,
+              `> 应用未做代码签名：Windows 首次运行点「更多信息 → 仍要运行」；macOS 右键 App → 打开。`,
+            ].join('\n');
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: tag,
+              name: `scLens Runner ${tag}`,
+              body,
+              draft: true,
+              prerelease: false,
+            });
+            return data.id;
+
+  # Step 2: build on each platform and upload into the shared draft release.
   build-tauri:
+    needs: create-release
     permissions:
       contents: write
 
@@ -51,20 +98,5 @@ jobs:
         with:
           projectPath: apps/desktop
           tauriScript: pnpm tauri
-          tagName: ${{ github.ref_name }}
-          releaseName: scLens Runner ${{ github.ref_name }}
-          releaseBody: |
-            ## scLens Desktop Runner ${{ github.ref_name }}
-
-            本地执行引擎，配合 scLens Web 控制台使用。
-
-            ### 安装方式
-            - **Windows**: 下载 `.msi` 安装包
-            - **macOS (Apple Silicon)**: 下载 `aarch64.dmg`
-            - **macOS (Intel)**: 下载 `x86_64.dmg`
-
-            ### 使用说明
-            安装后启动 scLens Runner，在 Web 控制台中配对项目，即可在本地执行单细胞分析流程。
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release_id }}
           args: ${{ matrix.args }}
