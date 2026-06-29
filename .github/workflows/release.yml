@@ -25,6 +25,21 @@ jobs:
         with:
           script: |
             const tag = process.env.GITHUB_REF_NAME;
+            // Remove any pre-existing releases for this tag (incl. leftover drafts)
+            const existing = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            for (const rel of existing.data) {
+              if (rel.tag_name === tag) {
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: rel.id,
+                });
+              }
+            }
             const body = [
               `## scLens Desktop Runner ${tag}`,
               ``,
