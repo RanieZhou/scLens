@@ -55,9 +55,17 @@ export function RunnerApp() {
           />
         </Layout.Header>
         <Layout.Content style={{ padding: 24 }}>
-          {tab === "pairing" && <PairingPage onPaired={() => setTab("tasks")} />}
-          {tab === "system" && <SystemInfoPage />}
-          {tab === "tasks" && <TaskPage />}
+          {/* Keep every page mounted and toggle visibility so per-page state
+              (generated pairing code, scanned system info) survives tab switches. */}
+          <div style={{ display: tab === "pairing" ? "block" : "none" }}>
+            <PairingPage onPaired={() => setTab("tasks")} />
+          </div>
+          <div style={{ display: tab === "system" ? "block" : "none" }}>
+            <SystemInfoPage />
+          </div>
+          <div style={{ display: tab === "tasks" ? "block" : "none" }}>
+            <TaskPage />
+          </div>
         </Layout.Content>
       </Layout>
     </ConfigProvider>
