@@ -63,7 +63,7 @@ pub fn probe() -> SystemInfo {
         .map(|c| c.brand().to_string())
         .unwrap_or_else(|| "unknown".to_string());
     let logical_cores = sys.cpus().len();
-    let physical_cores = System::physical_core_count().unwrap_or(logical_cores / 2).max(1);
+    let physical_cores = sys.physical_core_count().unwrap_or(logical_cores / 2).max(1);
 
     let total_gb = sys.total_memory() as f64 / 1_073_741_824.0;
     let available_gb = sys.available_memory() as f64 / 1_073_741_824.0;

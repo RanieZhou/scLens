@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 pub fn generate_pair_code() -> String {
     const CHARS: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let mut rng = rand::thread_rng();
-    let part = |n: usize| -> String {
+    let mut part = |n: usize| -> String {
         (0..n).map(|_| CHARS[rng.gen_range(0..CHARS.len())] as char).collect()
     };
     format!("{}-{}", part(4), part(4))
